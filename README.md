@@ -133,6 +133,85 @@ class-web (Next.js dev: `localhost:3000`), class-mobile (Expo dev: `:8081`, `:19
 - **utf8mb4**: DB charset을 `utf8mb4`로 ALTER 함 (이모지 저장 가능). 신규 테이블도 자동으로 utf8mb4.
 - **SECRET_KEY / DEBUG**: 운영 배포 전 환경변수로 분리 + `DEBUG=False` + `ALLOWED_HOSTS` 정리 필수.
 
+## 배포 (AWS Lightsail + GitHub Actions)
+
+운영: **AWS Lightsail (Amazon Linux 2023)** + Nginx + Gunicorn + systemd. main 브랜치 push 시 GitHub Actions 가 SSH로 서버에 접속해 자동 배포.
+
+### 구성 요약
+
+```
+GitHub Actions  ──ssh──>  Lightsail (54.116.131.130)
+  on push:main           - git pull
+                         - pip install
+                         - migrate
+                         - collectstatic
+                         - systemctl restart memo-app
+
+Client → Nginx :80 → Gunicorn 127.0.0.1:8001 → Django (memo-app.service)
+```
+
+- **앱 디렉토리**: `~/github/memo-app` (ec2-user 홈 안)
+- **systemd unit**: `memo-app.service` (`scripts/memo-app.service`)
+- **Nginx**: `/etc/nginx/conf.d/memo-app.conf` (`scripts/nginx-memo-app.conf`)
+
+### 1회 서버 부트스트랩
+
+1. **Lightsail 인스턴스에 포트 80 열기** (Networking 탭에서 HTTP 허용).
+2. SSH 접속:
+   ```bash
+   ssh -i ~/nodong1987.pem ec2-user@54.116.131.130
+   ```
+3. 부트스트랩 다운로드 후 1차 실행 (Python/nginx 설치 + repo clone, .env 부재 안내):
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/siesto-rivera/PrivateMemo-backend/main/scripts/bootstrap.sh -o bootstrap.sh
+   bash bootstrap.sh
+   ```
+4. 로컬에서 `.env`를 서버로 SCP (`.env.example` 복사 후 운영용 값 채워서):
+   ```bash
+   scp -i ~/nodong1987.pem .env ec2-user@54.116.131.130:~/github/memo-app/.env
+   ```
+   필수 키: `MYSQL_HOST/DB/USERNAME/PASSWORD`, `DJANGO_SECRET_KEY`(강력한 랜덤), `DEBUG=False`, `ALLOWED_HOSTS=54.116.131.130`, `CSRF_TRUSTED_ORIGINS=http://54.116.131.130`.
+5. 부트스트랩 재실행 → migrate, collectstatic, systemd 등록, nginx 설정, sudoers 규칙까지 마무리:
+   ```bash
+   bash bootstrap.sh
+   ```
+6. 어드민 계정 생성:
+   ```bash
+   cd ~/github/memo-app && source venv/bin/activate && python manage.py createsuperuser
+   ```
+7. http://54.116.131.130/admin/ 로그인 확인.
+
+### GitHub Actions Secret 설정
+
+repo 의 Settings → Secrets and variables → Actions 에서:
+
+- `LIGHTSAIL_SSH_KEY` — `nodong1987.pem` 의 **전체 내용**(`-----BEGIN ... -----END`)을 그대로 붙여넣기
+
+또는 gh CLI로:
+```bash
+gh secret set LIGHTSAIL_SSH_KEY < ~/nodong1987.pem
+```
+
+이후 main 브랜치에 push하면 `.github/workflows/deploy.yml`이 발동되어 자동 배포됩니다. 수동 트리거는 Actions 탭에서 "Run workflow" 가능.
+
+### 배포 동작 (`.github/workflows/deploy.yml`)
+
+1. `appleboy/ssh-action`으로 서버 접속
+2. `git fetch origin main && git reset --hard origin/main` (로컬 변경 무시, 강제 동기화)
+3. `pip install -r requirements.txt`
+4. `python manage.py migrate --noinput`
+5. `python manage.py collectstatic --noinput`
+6. `sudo systemctl restart memo-app` (sudoers에 NOPASSWD 등록되어 있어 비밀번호 없이 실행)
+7. `systemctl status` 출력으로 헬스체크
+
+### 운영 시 주의
+
+- `.env` 파일은 절대 커밋하지 마세요 (`.gitignore` 처리됨).
+- `DJANGO_SECRET_KEY`는 운영용으로 새로 생성: `python -c "import secrets; print(secrets.token_urlsafe(50))"`.
+- `DEBUG=False` 운영에서는 정적 파일을 Nginx가 직접 서빙합니다 (`/static/` 경로). 코드 수정 시 자동 `collectstatic` 됨.
+- 로그: `sudo journalctl -u memo-app -f` (gunicorn 액세스/에러), `/var/log/nginx/access.log` (nginx).
+- HTTPS 필요해지면 도메인 연결 후 `certbot --nginx`로 Let's Encrypt 인증서 추가 가능.
+
 ## 라이선스
 
 CC BY-NC 4.0 (PrivateMemo와 동일).
