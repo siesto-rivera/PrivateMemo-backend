@@ -24,9 +24,20 @@ class SignupView(generics.CreateAPIView):
         )
 
 
-class MeView(generics.RetrieveUpdateAPIView):
+class MeView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
         return self.request.user
+
+    def destroy(self, request, *args, **kwargs):
+        password = request.data.get("password")
+        user = self.get_object()
+        if not password or not user.check_password(password):
+            return Response(
+                {"password": ["비밀번호가 일치하지 않습니다."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
