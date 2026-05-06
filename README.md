@@ -75,14 +75,18 @@ python manage.py runserver 0.0.0.0:8001
 
 ### 카테고리 — `/api/categories/`
 
-| Method | Path | Body |
-|---|---|---|
-| GET | `/` | (목록) |
-| POST | `/` | `{name, emoji?}` |
-| PATCH | `/{id}/` | `{name?, emoji?}` |
-| DELETE | `/{id}/` | — |
+| Method | Path | Body | 비고 |
+|---|---|---|---|
+| GET | `/` | — | (목록) |
+| POST | `/` | `{name, emoji?}` | |
+| PATCH | `/{id}/` | `{name?, emoji?}` | |
+| DELETE | `/{id}/` | — | 메모를 `미분류`로 이동 후 카테고리 삭제 (cascade 아님) |
+| POST | `/{id}/merge/` | `{target_id}` | 해당 카테고리의 메모를 `target_id` 카테고리로 이동 후 source 삭제 |
 
-`미분류` 카테고리는 이름 변경/삭제 불가 (400 응답).
+`미분류` 카테고리 보호:
+- 이름 변경 불가 (400)
+- 삭제 불가 (400)
+- merge의 source 불가 (400). target은 가능 (다른 카테고리의 메모를 미분류로 옮길 때).
 
 ### 메모 — `/api/memos/`
 
@@ -109,7 +113,7 @@ python manage.py runserver 0.0.0.0:8001
 
 - `accounts.User` — 이메일 기반 로그인 (`USERNAME_FIELD='email'`), `name` 필드, `AbstractBaseUser` 기반.
 - `memos.Category` — `(user, name)` unique, `emoji` 포함. 신규 가입 시 11개 기본 카테고리 자동 시드 (시그널).
-- `memos.Memo` — `user` FK (CASCADE), `category` FK (CASCADE — 카테고리 삭제 시 메모도 함께), `tag`는 `JSONField`.
+- `memos.Memo` — `user` FK (CASCADE), `category` FK (CASCADE), `tag`는 `JSONField`. 카테고리 삭제는 API 단에서 메모를 `미분류`로 이동시킨 뒤 진행되므로 실제로 cascade는 발동하지 않음 (cascade는 유저 탈퇴 시 안전망 역할).
 
 유저별로 메모/카테고리 격리. 다른 유저의 데이터는 API에서 보이지 않음.
 
