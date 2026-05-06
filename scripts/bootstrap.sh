@@ -70,6 +70,10 @@ sudo nginx -t
 sudo systemctl enable nginx
 sudo systemctl restart nginx
 
+log "Allowing nginx to traverse \$HOME so it can serve /static/ files"
+# AL2023's /home/ec2-user is mode 700 by default, blocking nginx from entering.
+chmod 755 "$HOME"
+
 log "Granting passwordless sudo for systemctl restart (used by GitHub Actions deploys)"
 sudo tee /etc/sudoers.d/memo-app >/dev/null <<EOF
 ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl restart ${SERVICE_NAME}
