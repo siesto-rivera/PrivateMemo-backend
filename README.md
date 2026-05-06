@@ -112,7 +112,7 @@ python manage.py runserver 0.0.0.0:8001
 ## 데이터 모델
 
 - `accounts.User` — 이메일 기반 로그인 (`USERNAME_FIELD='email'`), `name` 필드, `AbstractBaseUser` 기반.
-- `memos.Category` — `(user, name)` unique, `emoji` 포함. 신규 가입 시 11개 기본 카테고리 자동 시드 (시그널).
+- `memos.Category` — `(user, name)` unique, `emoji` 포함. 신규 가입 시 4개 기본 카테고리 자동 시드 (시그널).
 - `memos.Memo` — `user` FK (CASCADE), `category` FK (CASCADE), `tag`는 `JSONField`. 카테고리 삭제는 API 단에서 메모를 `미분류`로 이동시킨 뒤 진행되므로 실제로 cascade는 발동하지 않음 (cascade는 유저 탈퇴 시 안전망 역할).
 
 유저별로 메모/카테고리 격리. 다른 유저의 데이터는 API에서 보이지 않음.
@@ -121,7 +121,7 @@ python manage.py runserver 0.0.0.0:8001
 
 신규 가입자에게 자동 생성되는 카테고리 (`memos/signals.py`):
 
-`📁 미분류` `🎬 영화` `📚 책` `🏠 주소` `🍜 맛집` `📍 장소` `🔑 비번` `🚗 차량관리` `🏍️ 오토바이 관리` `🛠️ 집관리` `💳 계좌 이벤트`
+`📁 미분류` `🎬 영화` `📚 책` `📍 장소`
 
 ## CORS
 
