@@ -1,3 +1,5 @@
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -91,7 +93,126 @@ class MemoViewSet(viewsets.ModelViewSet):
     serializer_class = MemoSerializer
 
     def get_queryset(self):
-        return Memo.objects.select_related("category").filter(user=self.request.user)
+        # Default queryset excludes trashed memos.
+        return (
+            Memo.objects.select_related("category")
+            .filter(user=self.request.user, deleted_at__isnull=True)
+        )
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        # Soft delete — move to trash. Use ?force=1 to permanently delete.
+        instance = self.get_object()
+        if request.query_params.get("force") in ("1", "true", "True"):
+            instance.delete()
+        else:
+            instance.deleted_at = timezone.now()
+            instance.save(update_fields=["deleted_at"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=["get"])
+    def trash(self, request):
+        qs = (
+            Memo.objects.select_related("category")
+            .filter(user=request.user, deleted_at__isnull=False)
+            .order_by("-deleted_at")
+        )
+        return Response(self.get_serializer(qs, many=True).data)
+
+    @action(detail=True, methods=["post"])
+    def restore(self, request, pk=None):
+        try:
+            memo = Memo.objects.get(
+                user=request.user, pk=pk, deleted_at__isnull=False
+            )
+        except Memo.DoesNotExist:
+            return Response(
+                {"detail": "휴지통에 없는 메모입니다."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        memo.deleted_at = None
+        memo.save(update_fields=["deleted_at"])
+        return Response(self.get_serializer(memo).data)
+
+    @action(detail=False, methods=["post"], url_path="empty_trash")
+    def empty_trash(self, request):
+        deleted, _ = Memo.objects.filter(
+            user=request.user, deleted_at__isnull=False
+        ).delete()
+        return Response({"deleted": deleted})
+
+    @action(detail=False, methods=["post"], url_path="bulk_import")
+    def bulk_import(self, request):
+        items = request.data.get("memos")
+        if not isinstance(items, list):
+            return Response(
+                {"detail": "memos 배열이 필요합니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        auto_create = bool(request.data.get("auto_create_categories", True))
+
+        # Cache and seed missing categories first (one query for the cache).
+        cache = {c.name: c for c in Category.objects.filter(user=request.user)}
+        wanted_names = {
+            (item.get("category_name") or "").strip()
+            for item in items
+            if isinstance(item, dict) and (item.get("category_name") or "").strip()
+        }
+        missing = [n for n in wanted_names if n not in cache]
+        if missing and auto_create:
+            for name in missing:
+                cat = Category.objects.create(user=request.user, name=name)
+                cache[name] = cat
+
+        imported = 0
+        errors = []
+        new_memos = []
+        for i, item in enumerate(items):
+            if not isinstance(item, dict):
+                errors.append({"row": i, "message": "각 항목은 객체여야 합니다."})
+                continue
+            name = (item.get("category_name") or "").strip()
+            text = item.get("memo") or ""
+            if not name:
+                errors.append({"row": i, "message": "category_name이 비어있습니다."})
+                continue
+            if not text:
+                errors.append({"row": i, "message": "memo가 비어있습니다."})
+                continue
+            cat = cache.get(name)
+            if cat is None:
+                errors.append({"row": i, "message": f"카테고리 '{name}' 없음"})
+                continue
+            alarm_raw = item.get("alarm_date")
+            alarm_dt = None
+            if alarm_raw:
+                alarm_dt = parse_datetime(alarm_raw)
+                if alarm_dt is None:
+                    errors.append(
+                        {"row": i, "message": f"alarm_date 형식 오류: {alarm_raw}"}
+                    )
+                    continue
+            tag = item.get("tag") or []
+            if not isinstance(tag, list):
+                tag = []
+            repeat = item.get("repeat") or "none"
+            if repeat not in dict(Memo.REPEAT_CHOICES):
+                repeat = "none"
+            new_memos.append(
+                Memo(
+                    user=request.user,
+                    category=cat,
+                    memo=text,
+                    alarm_date=alarm_dt,
+                    repeat=repeat,
+                    tag=tag,
+                )
+            )
+            imported += 1
+
+        if new_memos:
+            Memo.objects.bulk_create(new_memos)
+
+        return Response({"imported": imported, "errors": errors})

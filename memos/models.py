@@ -25,6 +25,13 @@ class Category(models.Model):
 
 
 class Memo(models.Model):
+    REPEAT_CHOICES = [
+        ("none", "None"),
+        ("daily", "Daily"),
+        ("weekly", "Weekly"),
+        ("monthly", "Monthly"),
+    ]
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -37,8 +44,12 @@ class Memo(models.Model):
     )
     memo = models.TextField()
     alarm_date = models.DateTimeField(null=True, blank=True)
+    repeat = models.CharField(
+        max_length=10, choices=REPEAT_CHOICES, default="none"
+    )
     tag = models.JSONField(default=list, blank=True)
     create_date = models.DateTimeField(auto_now_add=True)
+    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         ordering = ["-create_date"]

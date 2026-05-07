@@ -25,4 +25,12 @@ class MemoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Memo
-        fields = ["id", "category_name", "memo", "alarm_date", "tag", "createDate"]
+        fields = [
+            "id",
+            "category_name",
+            "memo",
+            "alarm_date",
+            "repeat",
+            "tag",
+            "createDate",
+        ]
