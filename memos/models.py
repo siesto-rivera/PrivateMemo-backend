@@ -48,6 +48,9 @@ class Memo(models.Model):
         max_length=10, choices=REPEAT_CHOICES, default="none"
     )
     tag = models.JSONField(default=list, blank=True)
+    # Asset IDs from the user's photo library (device-specific, e.g. iOS PhotoKit IDs).
+    # Image binaries themselves stay in the user's Photos app — we only keep references.
+    images = models.JSONField(default=list, blank=True)
     create_date = models.DateTimeField(auto_now_add=True)
     deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
 

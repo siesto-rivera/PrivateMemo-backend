@@ -197,6 +197,9 @@ class MemoViewSet(viewsets.ModelViewSet):
             tag = item.get("tag") or []
             if not isinstance(tag, list):
                 tag = []
+            images = item.get("images") or []
+            if not isinstance(images, list):
+                images = []
             repeat = item.get("repeat") or "none"
             if repeat not in dict(Memo.REPEAT_CHOICES):
                 repeat = "none"
@@ -208,6 +211,7 @@ class MemoViewSet(viewsets.ModelViewSet):
                     alarm_date=alarm_dt,
                     repeat=repeat,
                     tag=tag,
+                    images=images,
                 )
             )
             imported += 1

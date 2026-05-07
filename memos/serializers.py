@@ -32,5 +32,6 @@ class MemoSerializer(serializers.ModelSerializer):
             "alarm_date",
             "repeat",
             "tag",
+            "images",
             "createDate",
         ]
