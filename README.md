@@ -153,6 +153,8 @@ Client → Nginx :80 → Gunicorn 127.0.0.1:8001 → Django (memo-app.service)
 - **앱 디렉토리**: `~/github/memo-app` (ec2-user 홈 안)
 - **systemd unit**: `memo-app.service` (`scripts/memo-app.service`)
 - **Nginx**: `/etc/nginx/conf.d/memo-app.conf` (`scripts/nginx-memo-app.conf`)
+- **도메인**: `memoapi.ngoworks.org` → 54.116.131.130 (A 레코드)
+- **HTTPS**: Let's Encrypt 인증서 (certbot 자동 갱신)
 
 ### 1회 서버 부트스트랩
 
