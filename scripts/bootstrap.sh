@@ -19,12 +19,12 @@ log() { printf '\n==> %s\n' "$*"; }
 log "Updating system packages"
 sudo dnf update -y
 
-log "Installing Python 3.12, MariaDB headers, build tools, nginx, git"
+log "Installing Python 3.12, MariaDB headers, build tools, nginx, git, cronie"
 sudo dnf install -y \
   python3.12 python3.12-pip python3.12-devel \
   gcc git pkgconf \
   mariadb-connector-c-devel \
-  nginx
+  nginx cronie
 
 log "Cloning repo into $APP_DIR (skip if exists)"
 mkdir -p "$(dirname "$APP_DIR")"
@@ -80,6 +80,17 @@ ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl restart ${SERVICE_NAME}
 ec2-user ALL=(ALL) NOPASSWD: /bin/systemctl status ${SERVICE_NAME}
 EOF
 sudo chmod 0440 /etc/sudoers.d/memo-app
+
+log "Enabling cron daemon and registering daily cleanup_trash job (04:00 UTC)"
+sudo systemctl enable --now crond
+CRON_LINE="0 4 * * * cd $APP_DIR && $APP_DIR/venv/bin/python manage.py cleanup_trash >> $HOME/memo-cleanup.log 2>&1"
+EXISTING_CRON=$(crontab -l 2>/dev/null || true)
+if echo "$EXISTING_CRON" | grep -qF "manage.py cleanup_trash"; then
+  echo "    cron already registered — skipping"
+else
+  printf '%s\n%s\n' "$EXISTING_CRON" "$CRON_LINE" | grep -v "^$" | crontab -
+  echo "    cron registered"
+fi
 
 log "Done"
 echo "    App health: sudo systemctl status $SERVICE_NAME"
