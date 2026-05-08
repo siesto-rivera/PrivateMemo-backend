@@ -44,6 +44,7 @@ class Memo(models.Model):
     )
     memo = models.TextField()
     alarm_date = models.DateTimeField(null=True, blank=True)
+    schedule_date = models.DateField(null=True, blank=True, db_index=True)
     repeat = models.CharField(
         max_length=10, choices=REPEAT_CHOICES, default="none"
     )

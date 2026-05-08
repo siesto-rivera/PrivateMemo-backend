@@ -30,6 +30,7 @@ class MemoSerializer(serializers.ModelSerializer):
             "category_name",
             "memo",
             "alarm_date",
+            "schedule_date",
             "repeat",
             "tag",
             "images",

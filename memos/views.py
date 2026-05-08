@@ -1,5 +1,5 @@
 from django.utils import timezone
-from django.utils.dateparse import parse_datetime
+from django.utils.dateparse import parse_date, parse_datetime
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -194,6 +194,15 @@ class MemoViewSet(viewsets.ModelViewSet):
                         {"row": i, "message": f"alarm_date 형식 오류: {alarm_raw}"}
                     )
                     continue
+            schedule_raw = item.get("schedule_date")
+            schedule_d = None
+            if schedule_raw:
+                schedule_d = parse_date(schedule_raw)
+                if schedule_d is None:
+                    errors.append(
+                        {"row": i, "message": f"schedule_date 형식 오류: {schedule_raw}"}
+                    )
+                    continue
             tag = item.get("tag") or []
             if not isinstance(tag, list):
                 tag = []
@@ -209,6 +218,7 @@ class MemoViewSet(viewsets.ModelViewSet):
                     category=cat,
                     memo=text,
                     alarm_date=alarm_dt,
+                    schedule_date=schedule_d,
                     repeat=repeat,
                     tag=tag,
                     images=images,
