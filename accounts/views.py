@@ -1,6 +1,7 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .serializers import SignupSerializer, UserSerializer
 
@@ -8,6 +9,7 @@ from .serializers import SignupSerializer, UserSerializer
 class SignupView(generics.CreateAPIView):
     serializer_class = SignupSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_scope = "auth_signup"
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -22,6 +24,16 @@ class SignupView(generics.CreateAPIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class ThrottledTokenObtainPairView(TokenObtainPairView):
+    """로그인. 브루트포스 방지를 위해 IP당 분당 10회 제한."""
+    throttle_scope = "auth_login"
+
+
+class ThrottledTokenRefreshView(TokenRefreshView):
+    """토큰 갱신. 인증된 클라이언트만 사용하므로 user 기본 제한 사용."""
+    pass
 
 
 class MeView(generics.RetrieveUpdateDestroyAPIView):

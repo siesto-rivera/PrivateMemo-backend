@@ -74,6 +74,17 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "30/hour",         # 미인증 요청 (가입/로그인 등)
+        "user": "2000/hour",       # 인증된 사용자
+        "auth_login": "10/min",    # 로그인 시도 (브루트포스 방지)
+        "auth_signup": "5/hour",   # 회원가입 (스팸 봇 방지)
+    },
 }
 
 SIMPLE_JWT = {
