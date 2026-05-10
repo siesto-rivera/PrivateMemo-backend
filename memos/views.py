@@ -97,6 +97,43 @@ class MemoViewSet(viewsets.ModelViewSet):
         return (
             Memo.objects.select_related("category")
             .filter(user=self.request.user, deleted_at__isnull=True)
+            .order_by("-create_date")
+        )
+
+    def list(self, request, *args, **kwargs):
+        # Pagination is opt-in via ?page=N. Without it, return all memos
+        # (used by categories/calendar/alarms which need full dataset).
+        page_param = request.query_params.get("page")
+        if page_param is None:
+            queryset = self.filter_queryset(self.get_queryset())
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+
+        try:
+            page = int(page_param)
+            page_size = int(request.query_params.get("page_size", 30))
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "page와 page_size는 정수여야 합니다."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        page = max(1, page)
+        page_size = max(1, min(100, page_size))
+
+        queryset = self.filter_queryset(self.get_queryset())
+        total = queryset.count()
+        start = (page - 1) * page_size
+        end = start + page_size
+        items = list(queryset[start:end])
+        serializer = self.get_serializer(items, many=True)
+        return Response(
+            {
+                "count": total,
+                "page": page,
+                "page_size": page_size,
+                "has_next": end < total,
+                "results": serializer.data,
+            }
         )
 
     def perform_create(self, serializer):
