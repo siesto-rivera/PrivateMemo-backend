@@ -180,12 +180,15 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8081",
     "http://localhost:19006",
     "http://127.0.0.1:19006",
+    "https://private-memo.vercel.app",
 ]
 # Expo Go on a phone hits the dev server at the LAN IP (e.g. http://192.168.x.x:8081).
 # For dev convenience, also allow any localhost / 127.0.0.1 / LAN IP origin via regex.
+# Also allow all Vercel preview deployments (private-memo-*.vercel.app).
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^http://localhost:\d+$",
     r"^http://127\.0\.0\.1:\d+$",
     r"^http://192\.168\.\d+\.\d+:\d+$",
     r"^http://10\.\d+\.\d+\.\d+:\d+$",
+    r"^https://private-memo[-\w]*\.vercel\.app$",
 ]
