@@ -3,6 +3,17 @@
 [지극히 사적인 메모장](https://github.com/siesto-rivera/PrivateMemo)의 Django 백엔드.
 class-mobile (Expo) / class-web (Next.js) 두 클라이언트가 공유하는 REST API.
 
+## 배포 URL
+
+| 항목 | URL |
+| --- | --- |
+| 🔧 API 베이스 | https://memoapi.ngoworks.org/api |
+| 📄 개인정보 처리방침 | https://memoapi.ngoworks.org/privacy/ |
+| 🛠 관리자 | https://memoapi.ngoworks.org/admin/ |
+| 🌐 웹 클라이언트 | https://memo.ngoworks.org |
+
+호스팅: AWS Lightsail (Amazon Linux 2023) + Nginx + Gunicorn + systemd. GitHub `main` 브랜치 push 시 자동 배포.
+
 ## 스택
 
 - Python 3.14
