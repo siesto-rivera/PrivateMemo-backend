@@ -181,6 +181,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:19006",
     "http://127.0.0.1:19006",
     "https://private-memo.vercel.app",
+    "https://memo.ngoworks.org",
 ]
 # Expo Go on a phone hits the dev server at the LAN IP (e.g. http://192.168.x.x:8081).
 # For dev convenience, also allow any localhost / 127.0.0.1 / LAN IP origin via regex.
