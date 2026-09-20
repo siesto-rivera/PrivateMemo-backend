@@ -16,13 +16,13 @@ jobs:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: 54.116.131.130
+          host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ec2-user
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           script_stop: true
           script: |
             set -e
-            cd ~/github/memo-app
+            cd /srv/memo-app
             git fetch origin main
             git reset --hard origin/main
             source venv/bin/activate
