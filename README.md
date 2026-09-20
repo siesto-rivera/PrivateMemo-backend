@@ -20,7 +20,7 @@ class-mobile (Expo) / class-web (Next.js) 두 클라이언트가 공유하는 RE
 - Django 6.0
 - Django REST Framework 3.17
 - SimpleJWT 5.5 (인증)
-- MariaDB (cafe24 호스팅)
+- MariaDB (통합 서버 자체 호스팅, DB `memo`; 2026-09-20 까지는 cafe24)
 
 ## 설치
 
@@ -151,7 +151,7 @@ class-web (Next.js dev: `localhost:3000`), class-mobile (Expo dev: `:8081`, `:19
 ### 구성 요약
 
 ```
-GitHub Actions  ──ssh──>  Lightsail (54.116.131.130)
+GitHub Actions  ──ssh──>  Lightsail (52.78.142.168, 통합 서버)
   on push:main           - git pull
                          - pip install
                          - migrate
@@ -164,7 +164,7 @@ Client → Nginx :80 → Gunicorn 127.0.0.1:8001 → Django (memo-app.service)
 - **앱 디렉토리**: `~/github/memo-app` (ec2-user 홈 안)
 - **systemd unit**: `memo-app.service` (`scripts/memo-app.service`)
 - **Nginx**: `/etc/nginx/conf.d/memo-app.conf` (`scripts/nginx-memo-app.conf`)
-- **도메인**: `memoapi.ngoworks.org` → 54.116.131.130 (A 레코드)
+- **도메인**: `memoapi.ngoworks.org` → 52.78.142.168 (A 레코드, 2026-09-20 통합 서버로 이전)
 - **HTTPS**: Let's Encrypt 인증서 (certbot 자동 갱신)
 
 ### 1회 서버 부트스트랩
@@ -172,7 +172,7 @@ Client → Nginx :80 → Gunicorn 127.0.0.1:8001 → Django (memo-app.service)
 1. **Lightsail 인스턴스에 포트 80 열기** (Networking 탭에서 HTTP 허용).
 2. SSH 접속:
    ```bash
-   ssh -i ~/nodong1987.pem ec2-user@54.116.131.130
+   ssh -i ~/nodong1987.pem ec2-user@52.78.142.168
    ```
 3. 부트스트랩 다운로드 후 1차 실행 (Python/nginx 설치 + repo clone, .env 부재 안내):
    ```bash
@@ -181,9 +181,9 @@ Client → Nginx :80 → Gunicorn 127.0.0.1:8001 → Django (memo-app.service)
    ```
 4. 로컬에서 `.env`를 서버로 SCP (`.env.example` 복사 후 운영용 값 채워서):
    ```bash
-   scp -i ~/nodong1987.pem .env ec2-user@54.116.131.130:~/github/memo-app/.env
+   scp -i ~/nodong1987.pem .env ec2-user@52.78.142.168:/srv/memo-app/.env
    ```
-   필수 키: `MYSQL_HOST/DB/USERNAME/PASSWORD`, `DJANGO_SECRET_KEY`(강력한 랜덤), `DEBUG=False`, `ALLOWED_HOSTS=54.116.131.130`, `CSRF_TRUSTED_ORIGINS=http://54.116.131.130`.
+   필수 키: `MYSQL_HOST/DB/USERNAME/PASSWORD`, `DJANGO_SECRET_KEY`(강력한 랜덤), `DEBUG=False`, `ALLOWED_HOSTS=memoapi.ngoworks.org`, `CSRF_TRUSTED_ORIGINS=http://54.116.131.130`.
 5. 부트스트랩 재실행 → migrate, collectstatic, systemd 등록, nginx 설정, sudoers 규칙까지 마무리:
    ```bash
    bash bootstrap.sh
@@ -192,7 +192,7 @@ Client → Nginx :80 → Gunicorn 127.0.0.1:8001 → Django (memo-app.service)
    ```bash
    cd ~/github/memo-app && source venv/bin/activate && python manage.py createsuperuser
    ```
-7. http://54.116.131.130/admin/ 로그인 확인.
+7. https://memoapi.ngoworks.org/admin/ 로그인 확인.
 
 ### GitHub Actions Secret 설정
 

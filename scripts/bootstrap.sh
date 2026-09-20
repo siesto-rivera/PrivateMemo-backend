@@ -39,7 +39,7 @@ if [ ! -f .env ]; then
 ERROR: $APP_DIR/.env not found.
 
 From your laptop, copy your prepared .env to the server:
-  scp -i ~/nodong1987.pem .env ec2-user@54.116.131.130:$APP_DIR/.env
+  scp -i ~/nodong1987.pem .env ec2-user@52.78.142.168:$APP_DIR/.env
 
 Then re-run this script.
 EOF
@@ -94,5 +94,5 @@ fi
 
 log "Done"
 echo "    App health: sudo systemctl status $SERVICE_NAME"
-echo "    Service URL: http://54.116.131.130/"
-echo "    Admin: http://54.116.131.130/admin/  (run 'python manage.py createsuperuser' inside venv to create an admin)"
+echo "    Service URL: https://memoapi.ngoworks.org/"
+echo "    Admin: https://memoapi.ngoworks.org/admin/  (run 'python manage.py createsuperuser' inside venv to create an admin)"
