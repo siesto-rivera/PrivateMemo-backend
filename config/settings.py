@@ -204,3 +204,21 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^http://10\.\d+\.\d+\.\d+:\d+$",
     r"^https://private-memo[-\w]*\.vercel\.app$",
 ]
+
+# 운영 로그: 전에는 LOGGING 이 없어 DEBUG 가 꺼진 운영에서 500 오류의 traceback 이 어디에도 남지 않았다
+# (Django 기본은 ADMINS 메일로만 보내는데 ADMINS 가 비어 있다). 콘솔(서비스 로그)로 남긴다. 2026-11-25
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"plain": {"format": "%(asctime)s %(levelname)s %(name)s: %(message)s"}},
+    "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "plain"}},
+    "root": {"handlers": ["console"], "level": "WARNING"},
+}
+
+# ── 운영 ERROR 를 텔레그램 '서버알림' 방으로 (2026-11-25, config/telegram_alert.py) ──
+# env TELEGRAM_ALERT_BOT_TOKEN·TELEGRAM_ALERT_CHAT_ID 가 없으면 아무것도 안 한다. 원본·설명: pspd-db 저장소 alerting/
+LOGGING.setdefault("handlers", {})["telegram"] = {"class": "config.telegram_alert.TelegramAlertHandler", "site": "memo"}
+LOGGING.setdefault("root", {"handlers": ["console"], "level": "WARNING"}).setdefault("handlers", []).append("telegram")
+for _logger in LOGGING.get("loggers", {}).values():  # 위로 전달하지 않는 로거에도 붙인다
+    if _logger.get("propagate") is False and "handlers" in _logger:
+        _logger["handlers"].append("telegram")
